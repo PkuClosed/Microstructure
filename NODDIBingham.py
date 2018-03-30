@@ -10,13 +10,12 @@ from dmipy.core.modeling_framework import MultiCompartmentModel
 from dmipy.core.acquisition_scheme import acquisition_scheme_from_bvalues
 
 # Load data
-if len(sys.argv) >= 10:
+if len(sys.argv) > 1:
     dwinames = sys.argv[1]
     masknames = sys.argv[2]
     bvecsnames = sys.argv[3]
     bvalsnames = sys.argv[4]
-    odnames = sys.argv[5]
-    directory = sys.argv[9]
+    directory = sys.argv[5]
 
 with open(dwinames) as f:
     allDwiNames = f.readlines()
@@ -32,6 +31,8 @@ allMaskNames = [x.strip('\n') for x in allMaskNames]
 allBvecsNames = [x.strip('\n') for x in allBvecsNames]
 allBvalsNames = [x.strip('\n') for x in allBvalsNames]
 
+if os.path.exists(directory) == False:
+    os.mkdir(directory)
 # Processing
 
 for iMask in range(len(allMaskNames)):
@@ -76,10 +77,14 @@ for iMask in range(len(allMaskNames)):
 
     hdr = dwi_nii.header
 
+    # create output folder
+    dir_sub = os.path.join(directory, "%03d" % iMask)
+    if os.path.exists(dir_sub) == False:
+        os.mkdir(dir_sub)    
 
     for name, values in fitted_parameters.items():
         # if values.squeeze().ndim != 2:
         #     continue
         results_nii = nib.Nifti1Image(values, dwi_nii.get_affine(), hdr)
-        results_name = os.path.join(directory, name + "%02d" % iMask + ".nii.gz")
+        results_name = os.path.join(dir_sub, name + ".nii.gz")
         results_nii.to_filename(results_name)

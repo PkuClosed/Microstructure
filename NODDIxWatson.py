@@ -11,13 +11,12 @@ from dmipy.core.acquisition_scheme import acquisition_scheme_from_bvalues
 from dipy.data import get_sphere
 
 # Load data
-if len(sys.argv) >= 10:
+if len(sys.argv) > 1:
     dwinames = sys.argv[1]
     masknames = sys.argv[2]
     bvecsnames = sys.argv[3]
     bvalsnames = sys.argv[4]
-    odnames = sys.argv[5]
-    directory = sys.argv[9]
+    directory = sys.argv[5]
 
 with open(dwinames) as f:
     allDwiNames = f.readlines()
@@ -33,6 +32,8 @@ allMaskNames = [x.strip('\n') for x in allMaskNames]
 allBvecsNames = [x.strip('\n') for x in allBvecsNames]
 allBvalsNames = [x.strip('\n') for x in allBvalsNames]
 
+if os.path.exists(directory) == False:
+    os.mkdir(directory)
 # Processing
 
 for iMask in range(len(allMaskNames)):
@@ -76,10 +77,15 @@ for iMask in range(len(allMaskNames)):
 
     hdr = dwi_nii.header
 
+    # create output folder
+    dir_sub = os.path.join(directory, "%03d" % iMask)
+    if os.path.exists(dir_sub) == False:
+        os.mkdir(dir_sub)
+        
     sphere = get_sphere(name='repulsion200').subdivide()
     fods = NODDIx_fit.fod(sphere.vertices, visual_odi_lower_bound=0.05)
     results_nii = nib.Nifti1Image(fods, dwi_nii.get_affine(), hdr)
-    results_name = os.path.join(directory, "FODs.nii.gz")
+    results_name = os.path.join(dir_sub, "FODs.nii.gz")
     results_nii.to_filename(results_name)
 
     fitted_parameters = NODDIx_fit.fitted_parameters
@@ -88,5 +94,5 @@ for iMask in range(len(allMaskNames)):
         #     continue
 
         results_nii = nib.Nifti1Image(values, dwi_nii.get_affine(), hdr)
-        results_name = os.path.join(directory, name + "%02d" % iMask + ".nii.gz")
+        results_name = os.path.join(dir_sub, name + ".nii.gz")
         results_nii.to_filename(results_name)
