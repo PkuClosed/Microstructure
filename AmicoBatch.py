@@ -36,7 +36,8 @@ if sel == 1:
 amico.core.setup()
 
    
-for iMask in range(len(allMaskNames)):
+#for iMask in range(len(allMaskNames)):
+for iMask in range(1):   
     print "Processing subject:", iMask
     dwiname = allDwiNames[iMask]
     maskname = allMaskNames[iMask]
@@ -45,9 +46,12 @@ for iMask in range(len(allMaskNames)):
     studyFolder = os.path.dirname(subjectFolder)
     ae = amico.Evaluation(studyFolder, subjectFolder)
     
-    bvalname = bvalsnames[iMask]
-    bvecname = bvecsnames[iMask]
+    bvalname = allBvalsNames[iMask]
+    bvecname = allBvecsNames[iMask]
     amico.util.fsl2scheme(bvalname,bvecname)
+    
+    import nipype.interfaces.camino as camino
+    camino.FSL2Scheme()
     
     ae.load_data(dwi_filename = os.path.basename(dwiname), 
                  scheme_filename = "NODDI_protocol.scheme", 
