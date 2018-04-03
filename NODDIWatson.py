@@ -8,6 +8,7 @@ from dmipy.distributions.distribute_models import SD1WatsonDistributed
 from dmipy.signal_models import cylinder_models, gaussian_models
 from dmipy.core.modeling_framework import MultiCompartmentModel
 from dmipy.core.acquisition_scheme import acquisition_scheme_from_bvalues
+from dmipy.core.acquisition_scheme import gtab_dipy2mipy
 
 # Load data
 if len(sys.argv) > 1:
@@ -43,14 +44,11 @@ for iMask in range(len(allMaskNames)):
     dwi = dwi_nii.get_data()
     mask = nib.load(allMaskNames[iMask]).get_data()
 
-    bvalues = np.loadtxt(allBvalsNames[iMask])  # given in s/mm^2
-    bvalues_SI = bvalues * 1e6  # now given in SI units as s/m^2
     gradient_directions = np.loadtxt(allBvecsNames[iMask])  # on the unit sphere
-    acq_scheme = acquisition_scheme_from_bvalues(bvalues_SI, gradient_directions)
-
-    # gtab_dipy = gradient_table(allBvalsNames[iMask], allBvecsNames[iMask], atol=3e-2)
-    # acq_scheme_mipy = gtab_dipy2mipy(gtab_dipy)
-
+    bvalues = np.loadtxt(allBvalsNames[iMask])  # given in s/mm^2
+    gtab_dipy = gradient_table(bvalues, gradient_directions, atol=3e-2)
+    acq_scheme = gtab_dipy2mipy(gtab_dipy)
+    
     acq_scheme.print_acquisition_info
 
     ball = gaussian_models.G1Ball()
