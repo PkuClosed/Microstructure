@@ -9,6 +9,7 @@ from dmipy.signal_models import cylinder_models, gaussian_models
 from dmipy.core.modeling_framework import MultiCompartmentModel
 from dmipy.core.acquisition_scheme import acquisition_scheme_from_bvalues
 from dmipy.core.acquisition_scheme import gtab_dipy2mipy
+from dipy.core.geometry import normalized_vector
 
 # Load data
 if len(sys.argv) > 1:
@@ -17,7 +18,9 @@ if len(sys.argv) > 1:
     bvecsnames = sys.argv[3]
     bvalsnames = sys.argv[4]
     directory = sys.argv[5]
-
+    Delta = float(sys.argv[6])
+    delta = float(sys.argv[7])
+    
 with open(dwinames) as f:
     allDwiNames = f.readlines()
 with open(masknames) as f:
@@ -40,16 +43,26 @@ for iMask in range(len(allMaskNames)):
     print "Processing subject", iMask
 
     print "Loading"
+    
+    gradient_directions = np.loadtxt(allBvecsNames[iMask])  # on the unit sphere
+    
+    if gradient_directions.shape[1] == 3:
+        gradient_directions_normalized = normalized_vector(gradient_directions)
+    else:
+        gradient_directions_normalized = normalized_vector(gradient_directions.T)
+    gradient_directions_normalized[np.isnan(gradient_directions_normalized)] = 1.0/np.sqrt(3)
+    
+    bvalues = np.loadtxt(allBvalsNames[iMask])  # given in s/mm^2
+    bvalues_SI = bvalues * 1e6 
+    acq_scheme = acquisition_scheme_from_bvalues(bvalues_SI, gradient_directions_normalized, delta, Delta)
+    # gtab_dipy = gradient_table(bvalues, gradient_directions, big_delta=Delta, small_delta=delta, atol=3e-2)
+    # acq_scheme = gtab_dipy2mipy(gtab_dipy)
+
+    acq_scheme.print_acquisition_info
+
     dwi_nii = nib.load(allDwiNames[iMask])
     dwi = dwi_nii.get_data()
     mask = nib.load(allMaskNames[iMask]).get_data()
-
-    gradient_directions = np.loadtxt(allBvecsNames[iMask])  # on the unit sphere
-    bvalues = np.loadtxt(allBvalsNames[iMask])  # given in s/mm^2
-    gtab_dipy = gradient_table(bvalues, gradient_directions, atol=3e-2)
-    acq_scheme = gtab_dipy2mipy(gtab_dipy)
-
-    acq_scheme.print_acquisition_info
 
     ball = gaussian_models.G1Ball()
     stick = cylinder_models.C1Stick()
@@ -57,7 +70,7 @@ for iMask in range(len(allMaskNames)):
 
     bingham_dispersed_bundle = SD2BinghamDistributed(models=[stick, zeppelin])
 
-    print bingham_dispersed_bundle.parameter_names.parameter_names
+    print bingham_dispersed_bundle.parameter_names
 
     bingham_dispersed_bundle.set_tortuous_parameter('G2Zeppelin_1_lambda_perp', 'C1Stick_1_lambda_par', 'partial_volume_0')
     bingham_dispersed_bundle.set_equal_parameter('G2Zeppelin_1_lambda_par', 'C1Stick_1_lambda_par')
